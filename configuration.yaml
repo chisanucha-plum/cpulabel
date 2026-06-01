@@ -20,10 +20,10 @@ detection:
 classes:
   0: "helmet"
   1: "person"
-  2: "safety vest"
+  # 2: "safety vest"
 
 # Visualization colors (BGR format)
 colors:
   0: [0, 255, 0]        # Green - helmet
   1: [255, 0, 0]        # Blue - person
-  2: [0, 255, 255]      # Yellow - safety vest
+  # 2: [0, 255, 255]      # Yellow - safety vest
