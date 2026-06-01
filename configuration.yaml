@@ -1,0 +1,29 @@
+# Auto-Labeling Configuration
+
+# Model paths
+models:
+  dino_config: "GroundingDINO/groundingdino/config/GroundingDINO_SwinB_cfg.py"
+  dino_weights: "weights/groundingdino_swint_ogc.pth"
+  sam_weights: "MobileSAM/weights/mobile_sam.pt"
+
+# Input/Output folders
+paths:
+  input_folder: "images"
+  output_folder: "dataset"
+
+# Detection thresholds
+detection:
+  box_threshold: 0.35
+  text_threshold: 0.25
+
+# Classes to detect
+classes:
+  0: "helmet"
+  1: "person"
+  2: "safety vest"
+
+# Visualization colors (BGR format)
+colors:
+  0: [0, 255, 0]        # Green - helmet
+  1: [255, 0, 0]        # Blue - person
+  2: [0, 255, 255]      # Yellow - safety vest
