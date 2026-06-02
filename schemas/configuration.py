@@ -1,4 +1,4 @@
-import yaml
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Any
@@ -25,22 +25,22 @@ class Config:
     })
 
 class ConfigLoader:
-    """Load configuration from YAML file"""
+    """Load configuration from JSON file"""
     
     @staticmethod
-    def load(config_path: str = "configuration.yaml") -> Config:
-        """Load configuration from YAML file"""
+    def load(config_path: str = "configuration.json") -> Config:
+        """Load configuration from JSON file"""
         if not Path(config_path).exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
         
-        with open(config_path, 'r') as f:
-            data = yaml.safe_load(f)
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
         
         return ConfigLoader._parse_config(data)
     
     @staticmethod
     def _parse_config(data: Dict[str, Any]) -> Config:
-        """Parse YAML data into Config dataclass"""
+        """Parse JSON data into Config dataclass"""
         models = data.get('models', {})
         paths = data.get('paths', {})
         detection = data.get('detection', {})

@@ -32,16 +32,19 @@ mkdir images
 ```
 
 ### 3. Configure
-Edit `configuration.yaml`:
-```yaml
-classes:
-  0: "helmet"
-  1: "person"
-  2: "safety vest"
-
-detection:
-  box_threshold: 0.35
-  text_threshold: 0.25
+Edit `configuration.json`:
+```json
+{
+  "classes": {
+    "0": "helmet",
+    "1": "person",
+    "2": "safety vest"
+  },
+  "detection": {
+    "box_threshold": 0.35,
+    "text_threshold": 0.25
+  }
+}
 ```
 
 ### 4. Run
@@ -83,36 +86,48 @@ When using `--augment`, each image generates 5 versions:
 ## Configuration
 
 ### Basic Settings
-```yaml
-paths:
-  input_folder: "images"
-  output_folder: "dataset"
-
-detection:
-  box_threshold: 0.35      # Detection confidence
-  text_threshold: 0.25     # Text matching confidence
+```json
+{
+  "paths": {
+    "input_folder": "images",
+    "output_folder": "dataset"
+  },
+  "detection": {
+    "box_threshold": 0.35,
+    "text_threshold": 0.25
+  }
+}
 ```
 
 ### Classes
-```yaml
-# Single class
-classes:
-  0: "helmet"
+```json
+// Single class
+{
+  "classes": {
+    "0": "helmet"
+  }
+}
 
-# Multiple classes
-classes:
-  0: "helmet"
-  1: "person"
-  2: "safety vest"
-  3: "gloves"
+// Multiple classes
+{
+  "classes": {
+    "0": "helmet",
+    "1": "person",
+    "2": "safety vest",
+    "3": "gloves"
+  }
+}
 ```
 
 ### Visualization Colors
-```yaml
-colors:
-  0: [0, 255, 0]      # Green
-  1: [255, 0, 0]      # Blue
-  2: [0, 255, 255]    # Yellow
+```json
+{
+  "colors": {
+    "0": [0, 255, 0],
+    "1": [255, 0, 0],
+    "2": [0, 255, 255]
+  }
+}
 ```
 
 ## Advanced Usage
@@ -201,7 +216,7 @@ cd ..
 ```
 cpulabel/
 ├── main.py                 # Entry point
-├── configuration.yaml      # Config file
+├── configuration.json      # Config file
 ├── requirements.txt
 ├── schemas/
 │   ├── configuration.py    # Config + Loader

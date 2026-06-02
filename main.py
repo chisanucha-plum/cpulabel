@@ -24,7 +24,7 @@ def run_pipeline(augment: bool = False):
     """
     try:
         # Load configuration
-        config = ConfigLoader.load("configuration.yaml")
+        config = ConfigLoader.load("configuration.json")
         
         # Setup output structure
         setup_dataset_structure(config)
