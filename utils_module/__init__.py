@@ -3,10 +3,11 @@ from .annotation_utils import save_yolo_annotation, create_coco_annotation, save
 from .image_utils import apply_mask_overlay, create_coco_categories
 from .augmentation import ImageAugmenter
 from .box_vector import BoundingBoxVector
+from .hitl_viewer import HITLViewer
 
 __all__ = [
     "setup_dataset_structure", "get_image_files", "save_image",
     "save_yolo_annotation", "create_coco_annotation", "save_coco_json", "save_yolo_yaml",
     "apply_mask_overlay", "create_coco_categories",
-    "ImageAugmenter", "BoundingBoxVector"
+    "ImageAugmenter", "BoundingBoxVector", "HITLViewer"
 ]

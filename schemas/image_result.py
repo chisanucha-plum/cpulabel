@@ -11,3 +11,4 @@ class ImageResult:
     height: int
     detections: List[Detection] = field(default_factory=list)
     masks: List = field(default_factory=list)
+    category: str = "auto"  # 'auto', 'confident', 'uncertain', 'rejected'

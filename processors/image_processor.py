@@ -12,7 +12,7 @@ from models_module import GroundingDINOModel, MobileSAMModel
 from groundingdino.util.inference import load_image
 from utils_module import (
     save_yolo_annotation, create_coco_annotation, save_image,
-    apply_mask_overlay, ImageAugmenter
+    apply_mask_overlay, ImageAugmenter, HITLViewer
 )
 
 logger = logging.getLogger(__name__)
@@ -20,13 +20,15 @@ logger = logging.getLogger(__name__)
 class ImageProcessor:
     """Process images for auto-labeling"""
     
-    def __init__(self, config: Config, augment: bool = False):
+    def __init__(self, config: Config, augment: bool = False, review: bool = False):
         self.config = config
         self.dino = GroundingDINOModel(config)
         self.sam = MobileSAMModel(config)
         self.stats = ProcessingStats()
         self.augment = augment
         self.augmenter = ImageAugmenter() if augment else None
+        self.review = review
+        self.hitl_viewer = HITLViewer(config) if review else None
     
     def process_image(self, image_path: Path, image_id: int) -> List[Tuple[ImageResult, np.ndarray]]:
         """Process single image with optional augmentation
@@ -64,19 +66,32 @@ class ImageProcessor:
             return [None]
     
     def save_results(self, result: ImageResult, image_source: np.ndarray, 
-                    annotation_id: int) -> Tuple[List[Dict], int]:
-        """Save results for processed image"""
+                    annotation_id: int, category: str = "auto") -> Tuple[List[Dict], int]:
+        """Save results for processed image
+        
+        Args:
+            result: Image result with detections
+            image_source: Original image
+            annotation_id: COCO annotation ID
+            category: Category folder ('auto', 'confident', 'uncertain')
+        """
         try:
             label_name = result.file_name
             
-            # Save YOLO format
-            yolo_label_path = f"{self.config.output_folder}/yolo/labels/{label_name}.txt"
-            save_yolo_annotation(result.detections, image_source.shape, yolo_label_path)
+            # Determine folder based on category
+            if category in ["confident", "uncertain"]:
+                base_path = f"{self.config.output_folder}/yolo/{category}"
+                yolo_label_path = f"{base_path}/labels/{label_name}.txt"
+                yolo_image_path = f"{base_path}/images/{label_name}.jpg"
+            else:
+                yolo_label_path = f"{self.config.output_folder}/yolo/labels/{label_name}.txt"
+                yolo_image_path = f"{self.config.output_folder}/yolo/images/{label_name}.jpg"
             
-            # Save images
-            yolo_image_path = f"{self.config.output_folder}/yolo/images/{label_name}.jpg"
+            # Save YOLO format
+            save_yolo_annotation(result.detections, image_source.shape, yolo_label_path)
             save_image(image_source, yolo_image_path)
             
+            # Always save to COCO
             coco_image_path = f"{self.config.output_folder}/coco/images/{label_name}.jpg"
             save_image(image_source, coco_image_path)
             
@@ -104,9 +119,7 @@ class ImageProcessor:
         """Generate augmented versions of image"""
         augmentations = [
             ("_rot15", self.augmenter.rotate(image_source, 15)),
-            ("_rot-15", self.augmenter.rotate(image_source, -15)),
             ("_noise", self.augmenter.add_noise(image_source, 0.1)),
-            ("_fliph", self.augmenter.flip_h(image_source)),
         ]
         return augmentations
     
@@ -136,6 +149,17 @@ class ImageProcessor:
             
             # Segment objects
             self._segment_objects(result, img_source)
+            
+            # Human review (only for original, not augmented versions)
+            if self.review and suffix == "":
+                accepted, result, result.masks, category = self.hitl_viewer.review(
+                    img_source, result, result.masks
+                )
+                result.category = category
+                if not accepted:
+                    return None
+            else:
+                result.category = "auto"
             
             return result
         

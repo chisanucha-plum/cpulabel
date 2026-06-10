@@ -44,11 +44,19 @@ class ConfigLoader:
         models = data.get('models', {})
         paths = data.get('paths', {})
         detection = data.get('detection', {})
-        classes = data.get('classes', {})
+        classes_raw = data.get('classes', {})
         colors = data.get('colors', {})
         
-        # Convert string keys to int for classes and colors
-        classes_dict = {int(k): v for k, v in classes.items()}
+        # Parse classes - handle both old format (string) and new format (dict)
+        classes_dict = {}
+        for k, v in classes_raw.items():
+            class_id = int(k)
+            if isinstance(v, dict):
+                classes_dict[class_id] = v.get('name', 'unknown')
+            else:
+                classes_dict[class_id] = v
+        
+        # Convert string keys to int for colors
         colors_dict = {int(k): v for k, v in colors.items()}
         
         return Config(
@@ -57,8 +65,32 @@ class ConfigLoader:
             sam_weights=models.get('sam_weights', ''),
             input_folder=paths.get('input_folder', 'images'),
             output_folder=paths.get('output_folder', 'dataset'),
-            box_threshold=detection.get('box_threshold', 0.35),
-            text_threshold=detection.get('text_threshold', 0.25),
+            box_threshold=detection.get('box_threshold', 0.45),
+            text_threshold=detection.get('text_threshold', 0.30),
             classes=classes_dict,
             class_colors=colors_dict
         )
+    
+    @staticmethod
+    def get_class_threshold(classes_raw: Dict, class_id: int, threshold_type: str) -> float:
+        """Get per-class threshold (box or text)
+        
+        Args:
+            classes_raw: Raw classes dict from JSON
+            class_id: Class ID
+            threshold_type: 'box' or 'text'
+            
+        Returns:
+            Threshold value for that class
+        """
+        class_key = str(class_id)
+        if class_key not in classes_raw:
+            return 0.45 if threshold_type == 'box' else 0.30
+        
+        class_config = classes_raw[class_key]
+        if isinstance(class_config, dict):
+            threshold_key = f"{threshold_type}_threshold"
+            return class_config.get(threshold_key, 0.45 if threshold_type == 'box' else 0.30)
+        
+        # Fallback to global threshold
+        return 0.45 if threshold_type == 'box' else 0.30
