@@ -16,11 +16,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def run_pipeline(augment: bool = False):
+def run_pipeline(augment: bool = False, review: bool = False):
     """Run auto-labeling pipeline
     
     Args:
         augment: Enable data augmentation (5x images)
+        review: Enable human-in-the-loop review (auto-sorts by confidence)
     """
     try:
         # Load configuration
@@ -28,6 +29,7 @@ def run_pipeline(augment: bool = False):
         
         # Setup output structure
         setup_dataset_structure(config)
+        _setup_category_folders(config)
         
         # Get input images
         image_files = get_image_files(config.input_folder)
@@ -36,7 +38,7 @@ def run_pipeline(augment: bool = False):
             return
         
         # Initialize processor
-        processor = ImageProcessor(config, augment=augment)
+        processor = ImageProcessor(config, augment=augment, review=review)
         
         # Prepare COCO dataset
         coco_data = {
@@ -46,6 +48,7 @@ def run_pipeline(augment: bool = False):
         }
         
         annotation_id = 1
+        categories_count = {"auto": 0, "confident": 0, "uncertain": 0, "rejected": 0}
         
         # Process each image
         for image_id, image_path in enumerate(image_files, start=1):
@@ -65,21 +68,26 @@ def run_pipeline(augment: bool = False):
                     "height": result.height
                 })
                 
-                # Save results
-                coco_annotations, annotation_id = processor.save_results(
-                    result, image_source, annotation_id
-                )
-                coco_data["annotations"].extend(coco_annotations)
-                
-                # Update statistics
-                _update_stats(processor.stats, result, config)
+                # Save results with category organization
+                if result.category != "rejected":
+                    coco_annotations, annotation_id = processor.save_results(
+                        result, image_source, annotation_id, result.category
+                    )
+                    coco_data["annotations"].extend(coco_annotations)
+                    categories_count[result.category] += 1
+                    
+                    # Update statistics
+                    _update_stats(processor.stats, result, config)
+                else:
+                    categories_count["rejected"] += 1
+                    logger.debug(f"Rejected: {result.file_name}")
         
-        # Save outputs
+        # Save outputs 
         save_coco_json(coco_data, config)
         save_yolo_yaml(config)
         
         # Print summary
-        _print_summary(config, processor.stats, len(image_files))
+        _print_summary(config, processor.stats, len(image_files), categories_count, review)
     
     except FileNotFoundError as e:
         logger.error(f"File not found: {e}")
@@ -101,27 +109,42 @@ def _update_stats(stats: ProcessingStats, result, config):
         stats.detections_by_class[class_name] = \
             stats.detections_by_class.get(class_name, 0) + 1
 
-def _print_summary(config, stats: ProcessingStats, total_images: int):
+def _print_summary(config, stats: ProcessingStats, total_images: int, categories_count: dict = None, review: bool = False):
     """Print processing summary"""
     logger.info(f"{'='*60}")
     logger.info(f"✓ Complete!")
-    logger.info(f"  Images: {stats.processed_images}/{total_images}")
+    logger.info(f"  Images processed: {stats.processed_images}/{total_images}")
     logger.info(f"  Annotations: {stats.total_detections}")
+    
+    if review and categories_count:
+        logger.info(f"\n  Categories:")
+        logger.info(f"    Confident: {categories_count['confident']}")
+        logger.info(f"    Uncertain: {categories_count['uncertain']}")
+        logger.info(f"    Rejected: {categories_count['rejected']}")
     
     if stats.detections_by_class:
         logger.info(f"\n  By class:")
         for class_name, count in sorted(stats.detections_by_class.items()):
             logger.info(f"    {class_name}: {count}")
     
-    logger.info(f"\n Output: {config.output_folder}/")
+    logger.info(f"\n📁 Output: {config.output_folder}/")
     logger.info(f"{'='*60}")
+
+def _setup_category_folders(config):
+    """Create folders for different confidence categories"""
+    base = Path(config.output_folder)
+    for category in ["confident", "uncertain"]:
+        for subfolder in ["images", "labels"]:
+            folder = base / "yolo" / category / subfolder
+            folder.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
     augment = "--augment" in sys.argv
+    review = "--review" in sys.argv
     verbose = "--verbose" in sys.argv
     
     # Set log level
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
-    run_pipeline(augment=augment)
+    run_pipeline(augment=augment, review=review)

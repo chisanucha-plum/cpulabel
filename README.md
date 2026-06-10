@@ -8,6 +8,7 @@ Generates YOLO and COCO format datasets with automatic segmentation masks.
 
 - ✅ **CPU-friendly** - No GPU required
 - ✅ **Multi-class detection** - Detect multiple object classes
+- ✅ **Human-in-the-loop** - Review & edit annotations interactively
 - ✅ **Data augmentation** - 5x dataset expansion (rotation, noise, flip)
 - ✅ **YOLO + COCO format** - Export to both formats
 - ✅ **Automatic segmentation** - Precise masks with MobileSAM
@@ -17,8 +18,21 @@ Generates YOLO and COCO format datasets with automatic segmentation masks.
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Setup (ครั้งแรก)
 ```bash
+# Clone/download project
+cd testsam_groud
+
+# สร้าง virtual environment (ครั้งแรก)
+python -m venv venv
+
+# Activate environment
+# Windows CMD:
+venv\Scripts\activate.bat
+# Windows PowerShell:
+venv\Scripts\Activate.ps1
+
+# Install dependencies
 pip install -r requirements.txt
 cd GroundingDINO
 pip install -e .
@@ -28,7 +42,7 @@ cd ..
 ### 2. Prepare Images
 ```bash
 mkdir images
-# Copy your images to images/ folder
+# Copy ภาพของคุณ ไปใส่ในโฟลเดอร์ images/
 ```
 
 ### 3. Configure
@@ -48,12 +62,46 @@ Edit `configuration.json`:
 ```
 
 ### 4. Run
-```bash
-# Basic labeling
-python main.py
 
-# With data augmentation (5x images)
-python main.py --augment
+#### **ง่ายสุด: ใช้ Script**
+```bash
+# Windows CMD
+run.bat
+
+# Windows PowerShell
+.\run.ps1
+
+# Linux/Mac
+chmod +x run.sh
+./run.sh
+```
+
+#### **ตัวเลือกการรัน**
+```bash
+# ปกติ
+run.bat
+
+# ตรวจสอบแต่ละภาพ
+run.bat review
+
+# เพิ่มภาพจาก augmentation
+run.bat augment
+
+# ตรวจสอบ + Augment
+run.bat review augment
+```
+
+#### **Manual (เข้า env ก่อน)**
+```bash
+# เข้า environment
+venv\Scripts\activate.bat
+
+# รันตามต้องการ
+python main.py                    # ปกติ
+python main.py --review           # ตรวจสอบ
+python main.py --augment          # Augment
+python main.py --review --augment # ทั้งสอง
+python main.py --verbose          # Debug mode
 ```
 
 ## Output Structure
@@ -73,15 +121,71 @@ dataset/
 
 ## Data Augmentation
 
-When using `--augment`, each image generates 5 versions:
+When using `--augment`, each image generates 3 versions:
 
 - ✅ Original
 - ✅ Rotate +15°
-- ✅ Rotate -15°
 - ✅ Gaussian noise
-- ✅ Horizontal flip
 
-**Result:** 2 images → 10 labeled images
+**Result:** 2 images → 6 labeled images
+
+## Human-in-the-Loop Review
+
+Use `--review` flag to interactively review and edit annotations based on **confidence scores**:
+
+### Smart Auto-Sorting
+- ✅ **Auto-confident** - Detections >= 0.80 confidence skip review
+- ✅ **Manual review** - Detections < 0.80 confidence need approval
+- ✅ **Organized output** - Files sorted by confidence
+
+### Output Structure (with --review)
+```
+dataset/yolo/
+├── confident/      # Auto-pass (high confidence)
+│   ├── images/
+│   └── labels/
+├── uncertain/      # Manual reviewed
+│   ├── images/
+│   └── labels/
+├── images/         # All images
+└── labels/         # All labels
+```
+
+### Controls (Super Simple!)
+- **CLICK** - Remove detection (disappears instantly)
+- **SPACE** - Accept & move to uncertain
+- **C** - Mark as confident
+- **Q** - Reject image
+- **ESC** - Accept & exit
+
+### Visual Feedback
+- Each class has its own color
+- Click bbox to remove (gone!)
+- Counter shows active detections
+- Simple & fast!
+
+### Workflow
+
+#### Step 1: Auto-label everything
+```bash
+python main.py --review
+# Or with augmentation
+python main.py --review --augment
+```
+
+#### Step 2: Review uncertain folder later
+Images flagged as uncertain are saved separately for review
+
+#### Step 3: Train with confident data
+```bash
+# Use only high-confidence data
+yolo detect train data=dataset/yolo/data.yaml model=yolov8n.pt
+```
+
+### Tips
+- Reduce `text_threshold` in config to get more detections (need more review)
+- Increase `box_threshold` to filter obvious detections
+- Use C key to mark confident detections as you go
 
 ## Configuration
 
@@ -156,8 +260,6 @@ rotated = augmenter.rotate(image, 15)
 noisy = augmenter.add_noise(image, 0.1)
 flipped = augmenter.flip_h(image)
 ```
-
-## Output Formats
 
 ### YOLO Format
 Each `.txt` file contains:

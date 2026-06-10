@@ -9,15 +9,23 @@
     "output_folder": "dataset"
   },
   "detection": {
-    "box_threshold": 0.35,
-    "text_threshold": 0.25
+    "box_threshold": 0.45,
+    "text_threshold": 0.30
   },
   "classes": {
-    "0": "helmet",
-    "1": "person"
+    "0": {
+      "name": "helmet",
+      "box_threshold": 0.45,
+      "text_threshold": 0.30
+    },
+    "1": {
+      "name": "head",
+      "box_threshold": 0.25,
+      "text_threshold": 0.20
+    }
   },
   "colors": {
     "0": [0, 255, 0],
-    "1": [255, 0, 0]
+    "1": [0, 0, 255]
   }
 }
