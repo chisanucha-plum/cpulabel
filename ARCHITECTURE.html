@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPULabel - Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #e0e0e0;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        
+        .diagram {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 40px;
+        }
+        
+        .flow-section {
+            margin-bottom: 50px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #1e3c72;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #2a5298;
+            padding-bottom: 10px;
+        }
+        
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .box {
+            flex: 1;
+            min-width: 200px;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        
+        .box:hover {
+            transform: translateY(-5px);
+        }
+        
+        .input-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .process-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .model-box {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #000;
+        }
+        
+        .review-box {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: #000;
+        }
+        
+        .output-box {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: #000;
+        }
+        
+        .arrow {
+            text-align: center;
+            color: #2a5298;
+            font-size: 2em;
+            margin: 15px 0;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .card {
+            background: #f5f5f5;
+            border-left: 4px solid #2a5298;
+            padding: 20px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        
+        .card:hover {
+            background: #efefef;
+            border-left-color: #f5576c;
+        }
+        
+        .card-title {
+            font-size: 1.1em;
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .card-content {
+            font-size: 0.95em;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: #2a5298;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-right: 5px;
+            margin-top: 10px;
+        }
+        
+        .folder-structure {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            color: #333;
+            line-height: 1.8;
+        }
+        
+        .indent-1 { margin-left: 20px; }
+        .indent-2 { margin-left: 40px; }
+        .indent-3 { margin-left: 60px; }
+        
+        .workflow-step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            gap: 20px;
+        }
+        
+        .step-number {
+            background: #2a5298;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-size: 1.1em;
+            color: #1e3c72;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .step-description {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        
+        footer {
+            text-align: center;
+            color: #ddd;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏷️ CPULabel Architecture</h1>
+        <p class="subtitle">Automatic Image Labeling with GroundingDINO + MobileSAM</p>
+        
+        <div class="diagram">
+            <!-- Main Flow -->
+            <div class="flow-section">
+                <div class="section-title">📊 Main Processing Flow</div>
+                
+                <div class="flow">
+                    <div class="box input-box">📁 Input Images</div>
+                    <div class="arrow">→</div>
+                    <div class="box process-box">⚙️ Load Config</div>
+                    <div class="arrow">→</div>
+                    <div class="box model-box">🔍 GroundingDINO</div>
+                </div>
+                
+                <div class="flow">
+                    <div class="box model-box">🎭 MobileSAM</div>
+                    <div class="arrow">→</div>
+                    <div class="box review-box">👁️ Review (HITL)</div>
+                    <div class="arrow">→</div>
+                    <div class="box output-box">💾 Save Results</div>
+                </div>
+            </div>
+            
+            <!-- Optional Augmentation -->
+            <div class="flow-section">
+                <div class="section-title">🔄 Data Augmentation Flow (Optional)</div>
+                
+                <div class="flow">
+                    <div class="box input-box">Original Image</div>
+                    <div class="arrow">→</div>
+                    <div class="box process-box">Rotate ±15°</div>
+                </div>
+                
+                <div class="flow">
+                    <div class="box process-box">Add Noise</div>
+                    <div class="arrow">→</div>
+                    <div class="box process-box">Flip Horizontal</div>
+                    <div class="arrow">→</div>
+                    <div class="box process-box">5 Versions</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Components -->
+        <div class="diagram">
+            <div class="section-title">🔧 System Components</div>
+            
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">📋 Schemas</div>
+                    <div class="card-content">
+                        Data structures for configuration, detections, and results
+                        <span class="tag">Config</span>
+                        <span class="tag">Detection</span>
+                        <span class="tag">ImageResult</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">🛠️ Utils Module</div>
+                    <div class="card-content">
+                        File operations, annotations, image processing, augmentation
+                        <span class="tag">file_utils</span>
+                        <span class="tag">annotation</span>
+                        <span class="tag">augmentation</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">🤖 Models Module</div>
+                    <div class="card-content">
+                        Model wrappers for detection and segmentation
+                        <span class="tag">GroundingDINO</span>
+                        <span class="tag">MobileSAM</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">⚡ Processors</div>
+                    <div class="card-content">
+                        Main image processing pipeline with HITL integration
+                        <span class="tag">ImageProcessor</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">👁️ HITL Viewer</div>
+                    <div class="card-content">
+                        Interactive annotation review with click-to-remove
+                        <span class="tag">confidence-based</span>
+                        <span class="tag">mouse-control</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">📄 Main Entry</div>
+                    <div class="card-content">
+                        Pipeline orchestration and result output
+                        <span class="tag">main.py</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Workflow -->
+        <div class="diagram">
+            <div class="section-title">🔄 Detailed Workflow</div>
+            
+            <div class="workflow-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">Load Configuration</div>
+                    <div class="step-description">
+                        Read configuration.json with model paths, classes, thresholds, and colors
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Prepare Dataset Structure</div>
+                    <div class="step-description">
+                        Create folders: yolo/, coco/, visualizations/, confident/, uncertain/
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Load Input Images</div>
+                    <div class="step-description">
+                        Scan images/ folder for .jpg, .png files
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Generate Augmentations (Optional)</div>
+                    <div class="step-description">
+                        If --augment flag: create rotate ±15°, noise, flip versions (5 total per image)
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <div class="step-title">Object Detection (GroundingDINO)</div>
+                    <div class="step-description">
+                        Detect all classes with box_threshold and text_threshold filters
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <div class="step-title">Segmentation (MobileSAM)</div>
+                    <div class="step-description">
+                        Generate precise masks for each detected object
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">7</div>
+                <div class="step-content">
+                    <div class="step-title">Human Review (If --review)</div>
+                    <div class="step-description">
+                        • Auto-confident (≥0.80): skip to Step 8<br>
+                        • Low confidence (&lt;0.80): show interactive viewer<br>
+                        • User clicks to remove, presses C/SPACE to accept
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">8</div>
+                <div class="step-content">
+                    <div class="step-title">Organize by Confidence</div>
+                    <div class="step-description">
+                        Save to confident/ or uncertain/ folder based on review decision
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">9</div>
+                <div class="step-content">
+                    <div class="step-title">Save Outputs</div>
+                    <div class="step-description">
+                        • YOLO format: .txt files with normalized coordinates<br>
+                        • COCO format: JSON with masks and metadata<br>
+                        • Visualizations: overlay images for verification
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">10</div>
+                <div class="step-content">
+                    <div class="step-title">Print Summary</div>
+                    <div class="step-description">
+                        Statistics: images processed, annotations per class, output locations
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Folder Structure -->
+        <div class="diagram">
+            <div class="section-title">📁 Project Structure</div>
+            <div class="folder-structure">
+cpulabel/<br>
+├── main.py                    <span style="color: #888;">← Entry point</span><br>
+├── run.bat / run.ps1 / run.sh <span style="color: #888;">← Quick start scripts</span><br>
+├── configuration.json         <span style="color: #888;">← Settings</span><br>
+├── SKILL.md                   <span style="color: #888;">← Code style guide</span><br>
+├── ARCHITECTURE.html          <span style="color: #888;">← This file</span><br>
+├── README.md<br>
+├── SETUP.md<br>
+├── requirements.txt<br>
+├── .gitignore<br>
+│<br>
+├── schemas/                   <span style="color: #888;">← Data structures</span><br>
+│   ├── configuration.py       <span style="color: #888;">← Config loader</span><br>
+│   ├── detection.py           <span style="color: #888;">← Detection dataclass</span><br>
+│   ├── image_result.py        <span style="color: #888;">← Result dataclass</span><br>
+│   └── processing_stats.py<br>
+│<br>
+├── utils_module/              <span style="color: #888;">← Utilities</span><br>
+│   ├── file_utils.py          <span style="color: #888;">← File operations</span><br>
+│   ├── annotation_utils.py    <span style="color: #888;">← YOLO/COCO format</span><br>
+│   ├── image_utils.py         <span style="color: #888;">← Image processing</span><br>
+│   ├── augmentation.py        <span style="color: #888;">← Data augmentation</span><br>
+│   ├── box_vector.py          <span style="color: #888;">← Bounding box utils</span><br>
+│   └── hitl_viewer.py         <span style="color: #888;">← Interactive reviewer</span><br>
+│<br>
+├── models_module/             <span style="color: #888;">← Model wrappers</span><br>
+│   ├── grounding_dino_model.py<br>
+│   └── mobile_sam_model.py<br>
+│<br>
+├── processors/                <span style="color: #888;">← Pipeline</span><br>
+│   └── image_processor.py<br>
+│<br>
+├── images/                    <span style="color: #888;">← Input folder</span><br>
+│<br>
+└── dataset/                   <span style="color: #888;">← Output</span><br>
+    ├── yolo/<br>
+    │   ├── confident/         <span style="color: #888;">← High confidence</span><br>
+    │   ├── uncertain/         <span style="color: #888;">← Manual review</span><br>
+    │   ├── images/<br>
+    │   ├── labels/<br>
+    │   └── data.yaml<br>
+    ├── coco/<br>
+    │   ├── images/<br>
+    │   └── annotations/instances.json<br>
+    └── visualizations/
+            </div>
+        </div>
+        
+        <!-- Key Features -->
+        <div class="diagram">
+            <div class="section-title">✨ Key Features</div>
+            
+            <div class="highlight">
+                <strong>🚀 CPU-Only Pipeline</strong><br>
+                No GPU required. GroundingDINO + MobileSAM optimized for CPU inference on standard hardware.
+            </div>
+            
+            <div class="highlight">
+                <strong>🎯 Multi-Class Detection</strong><br>
+                Detect multiple object classes simultaneously. Easy to configure in JSON. Color-coded visualization.
+            </div>
+            
+            <div class="highlight">
+                <strong>👁️ Human-in-the-Loop</strong><br>
+                Interactive review with click-to-remove. Auto-confidence sorting. Separate confident/uncertain folders.
+            </div>
+            
+            <div class="highlight">
+                <strong>📊 Dual Format Export</strong><br>
+                YOLO format for YOLOv8 training. COCO format with segmentation masks. Both immediately ready for ML.
+            </div>
+            
+            <div class="highlight">
+                <strong>🔄 Data Augmentation</strong><br>
+                Optional 5x expansion: rotate ±15°, add noise, horizontal flip. Automatic for all detected objects.
+            </div>
+            
+            <div class="highlight">
+                <strong>⚙️ Production Ready</strong><br>
+                Comprehensive error handling, logging, resource cleanup, keyboard interrupt support. Type-hinted codebase.
+            </div>
+        </div>
+        
+        <footer>
+            <p>CPULabel - Efficient Image Labeling Tool | Architecture v1.0</p>
+        </footer>
+    </div>
+</body>
+</html>
