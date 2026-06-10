@@ -1,355 +1,266 @@
 # CPULabel
 
-Efficient image labeling using GroundingDINO + MobileSAM. Runs on CPU. No GPU required.
+**AI-powered auto-labeling** for creating YOLO and COCO datasets  
+Runs on **standard CPU** – no GPU required
 
-Generates YOLO and COCO format datasets with automatic segmentation masks.
+🚀 **Tech Stack**: GroundingDINO (detection) + MobileSAM (segmentation)
 
-## Features
+---
 
-- ✅ **CPU-friendly** - No GPU required
-- ✅ **Multi-class detection** - Detect multiple object classes
-- ✅ **Human-in-the-loop** - Review & edit annotations interactively
-- ✅ **Data augmentation** - 5x dataset expansion (rotation, noise, flip)
-- ✅ **YOLO + COCO format** - Export to both formats
-- ✅ **Automatic segmentation** - Precise masks with MobileSAM
-- ✅ **Batch processing** - Process multiple images
-- ✅ **Bounding box vectors** - Convert to vector representations
-- ✅ **Production ready** - Error handling, logging, clean code
+## ✨ Features
 
-## Quick Start
+- ✅ **CPU-friendly** – No GPU needed
+- ✅ **Multi-class detection** – Detect multiple object classes simultaneously
+- ✅ **Human-in-the-loop** – Interactive review with click-to-remove detections
+- ✅ **Per-class thresholds** – Fine-tune detection sensitivity per class
+- ✅ **Data augmentation** – Generate 3 versions per image (original, rotate, noise)
+- ✅ **YOLO + COCO export** – Export both formats with segmentation masks
+- ✅ **Production ready** – Error handling, logging, and clean architecture
 
-### 1. Setup (ครั้งแรก)
+---
+
+## 🎯 Quick Start
+
+### 1️⃣ Setup (First Time)
+See `SETUP.md` for detailed instructions
+
 ```bash
 # Clone/download project
 cd testsam_groud
 
-# สร้าง virtual environment (ครั้งแรก)
+# Create venv and install dependencies
 python -m venv venv
-
-# Activate environment
-# Windows CMD:
 venv\Scripts\activate.bat
-# Windows PowerShell:
-venv\Scripts\Activate.ps1
 
-# Install dependencies
 pip install -r requirements.txt
 cd GroundingDINO
 pip install -e .
 cd ..
 ```
 
-### 2. Prepare Images
+### 2️⃣ Prepare Images
 ```bash
 mkdir images
-# Copy ภาพของคุณ ไปใส่ในโฟลเดอร์ images/
+# Copy your images into images/ folder
 ```
 
-### 3. Configure
-Edit `configuration.json`:
-```json
-{
-  "classes": {
-    "0": "helmet",
-    "1": "person",
-    "2": "safety vest"
-  },
-  "detection": {
-    "box_threshold": 0.35,
-    "text_threshold": 0.25
-  }
-}
-```
-
-### 4. Run
-
-#### **ง่ายสุด: ใช้ Script**
+### 3️⃣ Run
 ```bash
-# Windows CMD
-run.bat
+# Basic processing
+python main.py
 
-# Windows PowerShell
-.\run.ps1
+# ✨ Recommended: Interactive review
+python main.py --review
 
-# Linux/Mac
-chmod +x run.sh
-./run.sh
+# With 3x data augmentation per image
+python main.py --review --augment
+
+# Debug mode with verbose logging
+python main.py --review --verbose
 ```
 
-#### **ตัวเลือกการรัน**
-```bash
-# ปกติ
-run.bat
+---
 
-# ตรวจสอบแต่ละภาพ
-run.bat review
+## 🎮 Human-in-the-Loop Review
 
-# เพิ่มภาพจาก augmentation
-run.bat augment
+Use `--review` flag to interactively review and refine detections
 
-# ตรวจสอบ + Augment
-run.bat review augment
-```
+### 🔦 Smart Auto-Sorting
+- **Confidence ≥ 0.80** → Auto-pass (saved to `confident/`)
+- **Confidence < 0.80** → Manual review (saved to `uncertain/`)
 
-#### **Manual (เข้า env ก่อน)**
-```bash
-# เข้า environment
-venv\Scripts\activate.bat
+### 🖱️ Keyboard Controls
+| Key | Action |
+|-----|--------|
+| **CLICK** | Remove detection (disappears immediately!) |
+| **SPACE / ESC** | Accept → mark as uncertain |
+| **C** | Mark as confident |
+| **Q** | Reject entire image |
 
-# รันตามต้องการ
-python main.py                    # ปกติ
-python main.py --review           # ตรวจสอบ
-python main.py --augment          # Augment
-python main.py --review --augment # ทั้งสอง
-python main.py --verbose          # Debug mode
-```
-
-## Output Structure
-
-```
-dataset/
-├── yolo/
-│   ├── images/              # Images
-│   ├── labels/              # YOLO format (.txt)
-│   └── data.yaml            # YOLO config
-├── coco/
-│   ├── images/              # Images
-│   └── annotations/
-│       └── instances.json   # COCO format with masks
-└── visualizations/          # Overlay visualizations
-```
-
-## Data Augmentation
-
-When using `--augment`, each image generates 3 versions:
-
-- ✅ Original
-- ✅ Rotate +15°
-- ✅ Gaussian noise
-
-**Result:** 2 images → 6 labeled images
-
-## Human-in-the-Loop Review
-
-Use `--review` flag to interactively review and edit annotations based on **confidence scores**:
-
-### Smart Auto-Sorting
-- ✅ **Auto-confident** - Detections >= 0.80 confidence skip review
-- ✅ **Manual review** - Detections < 0.80 confidence need approval
-- ✅ **Organized output** - Files sorted by confidence
-
-### Output Structure (with --review)
+### 📁 Output Structure (with --review)
 ```
 dataset/yolo/
-├── confident/      # Auto-pass (high confidence)
+├── confident/          # Auto-pass ≥ 0.80 confidence
 │   ├── images/
 │   └── labels/
-├── uncertain/      # Manual reviewed
+├── uncertain/          # Manual reviewed < 0.80 confidence
 │   ├── images/
 │   └── labels/
-├── images/         # All images
-└── labels/         # All labels
+└── data.yaml
 ```
 
-### Controls (Super Simple!)
-- **CLICK** - Remove detection (disappears instantly)
-- **SPACE** - Accept & move to uncertain
-- **C** - Mark as confident
-- **Q** - Reject image
-- **ESC** - Accept & exit
+---
 
-### Visual Feedback
-- Each class has its own color
-- Click bbox to remove (gone!)
-- Counter shows active detections
-- Simple & fast!
+## ⚙️ Configuration
 
-### Workflow
+Edit `configuration.json` to customize detection behavior:
 
-#### Step 1: Auto-label everything
-```bash
-python main.py --review
-# Or with augmentation
-python main.py --review --augment
-```
-
-#### Step 2: Review uncertain folder later
-Images flagged as uncertain are saved separately for review
-
-#### Step 3: Train with confident data
-```bash
-# Use only high-confidence data
-yolo detect train data=dataset/yolo/data.yaml model=yolov8n.pt
-```
-
-### Tips
-- Reduce `text_threshold` in config to get more detections (need more review)
-- Increase `box_threshold` to filter obvious detections
-- Use C key to mark confident detections as you go
-
-## Configuration
-
-### Basic Settings
+### Current Setup
 ```json
 {
   "paths": {
     "input_folder": "images",
     "output_folder": "dataset"
   },
-  "detection": {
-    "box_threshold": 0.35,
-    "text_threshold": 0.25
-  }
-}
-```
-
-### Classes
-```json
-// Single class
-{
   "classes": {
-    "0": "helmet"
-  }
-}
-
-// Multiple classes
-{
-  "classes": {
-    "0": "helmet",
-    "1": "person",
-    "2": "safety vest",
-    "3": "gloves"
-  }
-}
-```
-
-### Visualization Colors
-```json
-{
-  "colors": {
-    "0": [0, 255, 0],
-    "1": [255, 0, 0],
-    "2": [0, 255, 255]
-  }
-}
-```
-
-## Advanced Usage
-
-### Bounding Box Vectors
-```python
-from utils_module import BoundingBoxVector
-from schemas import Detection
-
-# Convert to vector [cx, cy, bw, bh, class_id]
-vectors = BoundingBoxVector.to_vectors(detections)
-
-# Convert to pixel coordinates [x1, y1, x2, y2]
-xyxy = BoundingBoxVector.to_xyxy(detection, image_shape)
-
-# Calculate IoU between boxes
-iou = BoundingBoxVector.iou(box1, box2)
-```
-
-### Custom Augmentation
-```python
-from utils_module import ImageAugmenter
-
-augmenter = ImageAugmenter()
-rotated = augmenter.rotate(image, 15)
-noisy = augmenter.add_noise(image, 0.1)
-flipped = augmenter.flip_h(image)
-```
-
-### YOLO Format
-Each `.txt` file contains:
-```
-class_id x_center y_center width height
-0 0.5 0.3 0.1 0.15
-1 0.7 0.6 0.2 0.3
-```
-
-### COCO Format
-JSON with segmentation masks:
-```json
-{
-  "images": [...],
-  "annotations": [
-    {
-      "id": 1,
-      "image_id": 1,
-      "category_id": 1,
-      "bbox": [x, y, width, height],
-      "segmentation": [[x1, y1, x2, y2, ...]],
-      "area": 1200
+    "0": {
+      "name": "helmet",
+      "box_threshold": 0.45,      // Conservative: high-quality only
+      "text_threshold": 0.30
+    },
+    "1": {
+      "name": "head",
+      "box_threshold": 0.25,      // Aggressive: catch more instances
+      "text_threshold": 0.20
     }
-  ],
-  "categories": [
-    {"id": 1, "name": "helmet"}
-  ]
+  },
+  "colors": {
+    "0": [0, 255, 0],      // helmet = green
+    "1": [0, 0, 255]       // head = red
+  }
 }
 ```
 
-## Troubleshooting
-
-### No images found
-- Verify `images/` folder exists
-- Check image formats: `.jpg`, `.png`, `.jpeg`
-
-### No detections
-- Lower `box_threshold` (e.g., 0.25)
-- Lower `text_threshold` (e.g., 0.15)
-- Verify class names match objects
-
-### Import errors
-```bash
-cd GroundingDINO
-pip install -e .
-cd ..
+### Add a New Class
+```json
+"2": {
+  "name": "safety_vest",
+  "box_threshold": 0.40,
+  "text_threshold": 0.25
+},
 ```
 
-### Memory issues
-- Process fewer images
-- Disable augmentation
-- Lower image resolution
+### Understanding Per-Class Thresholds
+- **box_threshold** → Confidence threshold for bounding box detection (↑ = stricter, fewer false positives)
+- **text_threshold** → Confidence threshold for text recognition (↑ = stricter, more selective)
 
-## Project Structure
+💡 **helmet**: Higher thresholds (0.45/0.30) = focus on high-quality detections only  
+💡 **head**: Lower thresholds (0.25/0.20) = catch more instances, reduce false negatives
+
+---
+
+## 📊 Output Structure
+
+```
+dataset/
+├── yolo/
+│   ├── confident/       # High-confidence detections
+│   ├── uncertain/       # Manually reviewed detections
+│   ├── images/          # All processed images
+│   ├── labels/          # YOLO format annotations
+│   └── data.yaml        # YOLO configuration
+├── coco/
+│   ├── images/
+│   └── annotations/instances.json  # COCO format with masks
+└── visualizations/      # Preview images with overlays
+```
+
+---
+
+## 📈 Data Augmentation
+
+When using `--augment`, each image generates 3 versions:
+
+```
+1 image → 3 versions:
+  ✅ Original
+  ✅ Rotated +15°
+  ✅ Gaussian noise applied
+```
+
+**Result**: 5 images → 15 labeled images (faster processing, maintained quality)
+
+---
+
+## 🐛 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| No images found | Verify `images/` folder exists, check for `.jpg/.png` files |
+| No detections | Lower `box_threshold` and `text_threshold` in config |
+| ImportError | Run `cd GroundingDINO && pip install -e . && cd ..` |
+| Slow processing | Reduce augmentation or disable it, lower image resolution |
+| Memory errors | Process fewer images, disable augmentation, use smaller images |
+
+---
+
+## 📁 Project Structure
 
 ```
 cpulabel/
-├── main.py                 # Entry point
-├── configuration.json      # Config file
-├── requirements.txt
-├── schemas/
-│   ├── configuration.py    # Config + Loader
-│   ├── detection.py        # Detection dataclass
-│   ├── image_result.py     # Result dataclass
-│   └── processing_stats.py # Stats dataclass
-├── utils_module/
-│   ├── file_utils.py       # File operations
-│   ├── annotation_utils.py # YOLO/COCO format
-│   ├── image_utils.py      # Image processing
-│   ├── augmentation.py     # Data augmentation
-│   └── box_vector.py       # Bounding box vectors
-├── models_module/
-│   ├── grounding_dino_model.py  # GroundingDINO
-│   └── mobile_sam_model.py      # MobileSAM
+├── main.py                       # Entry point
+├── configuration.json            # Configuration
+├── README.md / SETUP.md / SKILL.md
+├── schemas/                      # Data structures
+│   ├── configuration.py
+│   ├── detection.py
+│   ├── image_result.py
+│   └── processing_stats.py
+├── utils_module/                 # Utility functions
+│   ├── file_utils.py             # File I/O operations
+│   ├── annotation_utils.py       # YOLO/COCO format handlers
+│   ├── augmentation.py           # Image augmentation
+│   ├── hitl_viewer.py            # Interactive review interface
+│   └── box_vector.py             # Box operations & IoU calculation
+├── models_module/                # AI Models
+│   ├── grounding_dino_model.py   # GroundingDINO wrapper
+│   └── mobile_sam_model.py       # MobileSAM wrapper
 └── processors/
-    └── image_processor.py  # Main processing logic
+    └── image_processor.py        # Main processing pipeline
 ```
 
-## Requirements
+---
+
+## 📦 Requirements
 
 - Python 3.8+
-- ~5GB disk space (for models)
-- 4GB+ RAM
-- CPU (GPU optional but not required)
+- RAM: 4GB minimum
+- Disk space: ~5GB (for model weights)
+- CPU: Any modern processor
 
-## License
+**GPU**: Optional (CPU-only mode is fully supported)
+
+---
+
+## 🚀 Workflow Example
+
+```bash
+# 1. Initial setup
+python -m venv venv
+venv\Scripts\activate.bat
+pip install -r requirements.txt && cd GroundingDINO && pip install -e . && cd ..
+
+# 2. Place your images
+# Copy images to images/ folder
+
+# 3. Auto-label with interactive review (recommended)
+python main.py --review --augment
+
+# 4. Check results
+# - High-confidence labels: dataset/yolo/confident/
+# - Manual-reviewed labels: dataset/yolo/uncertain/
+
+# 5. Train your YOLO model
+# yolo detect train data=dataset/yolo/data.yaml model=yolov8n.pt epochs=50
+```
+
+---
+
+## 📚 Documentation
+
+- **SETUP.md** – Detailed setup guide with troubleshooting
+- **SKILL.md** – Coding style guide for contributors
+- **ARCHITECTURE.html** – System architecture and design
+
+---
+
+## 🏆 Credits
+
+- [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO) – Open-vocabulary object detection
+- [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) – Lightweight segmentation model
+
+---
+
+## 📝 License
 
 MIT
-
-## Credits
-
-- [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO)
-- [MobileSAM](https://github.com/ChaoningZhang/MobileSAM)
