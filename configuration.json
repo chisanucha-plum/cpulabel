@@ -1,6 +1,6 @@
 {
   "models": {
-    "dino_config": "GroundingDINO/groundingdino/config/GroundingDINO_SwinB_cfg.py",
+    "dino_config": "src/groundingdino/groundingdino/config/GroundingDINO_SwinT_OGC.py",
     "dino_weights": "weights/groundingdino_swint_ogc.pth",
     "sam_weights": "MobileSAM/weights/mobile_sam.pt"
   },
@@ -12,6 +12,9 @@
     "box_threshold": 0.45,
     "text_threshold": 0.30
   },
+  "helmet": {
+    "iou_threshold": 0.30
+  },
   "classes": {
     "0": {
       "name": "helmet",
@@ -20,12 +23,17 @@
     },
     "1": {
       "name": "head",
-      "box_threshold": 0.25,
-      "text_threshold": 0.20
+      "box_threshold": 0.15,
+      "text_threshold": 0.10
+    },
+    "2": {
+      "name": "no_helmet",
+      "detect": false
     }
   },
   "colors": {
     "0": [0, 255, 0],
-    "1": [0, 0, 255]
+    "1": [255, 140, 0],
+    "2": [0, 0, 255]
   }
 }
