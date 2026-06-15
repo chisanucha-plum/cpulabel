@@ -13,6 +13,7 @@ class Config:
     output_folder: str = "dataset"
     box_threshold: float = 0.35
     text_threshold: float = 0.25
+    helmet_iou_threshold: float = 0.30
     classes: Dict[int, str] = field(default_factory=lambda: {
         0: "helmet",
         1: "person",
@@ -44,6 +45,7 @@ class ConfigLoader:
         models = data.get('models', {})
         paths = data.get('paths', {})
         detection = data.get('detection', {})
+        helmet = data.get('helmet', {})
         classes_raw = data.get('classes', {})
         colors = data.get('colors', {})
         
@@ -67,6 +69,7 @@ class ConfigLoader:
             output_folder=paths.get('output_folder', 'dataset'),
             box_threshold=detection.get('box_threshold', 0.45),
             text_threshold=detection.get('text_threshold', 0.30),
+            helmet_iou_threshold=helmet.get('iou_threshold', 0.30),
             classes=classes_dict,
             class_colors=colors_dict
         )
