@@ -1,9 +1,23 @@
 import os
 import logging
 import tempfile
+import platform
 import numpy as np
-import torch
 from pathlib import Path
+
+# Workaround for Windows WMI hanging issue in platform.machine()
+# This prevents torch from hanging during import on some Windows systems
+if platform.system() == "Windows":
+    original_machine = platform.machine
+    def _machine_patched():
+        try:
+            return original_machine()
+        except Exception:
+            # Return AMD64 as default for Windows if WMI query fails
+            return "AMD64"
+    platform.machine = _machine_patched
+
+import torch
 from typing import Dict, List, Tuple, Optional
 from PIL import Image
 
@@ -48,22 +62,24 @@ class ImageProcessor:
         try:
             image_source, _ = self._load_image(image_path)
             
-            # Generate image versions
-            images_to_process = [("", image_source)]
+            # Process original image first (detect + segment)
+            result = self._process_single_version(
+                image_source, image_path, image_id, ""
+            )
+            
+            if result is None:
+                return [None]
+            
+            results = [(result, image_source)]
+            
+            # Apply augmentations after detection with coordinate transformation
             if self.augment:
-                images_to_process.extend(self._generate_augmentations(image_source))
-            
-            results = []
-            
-            # Process each version
-            for suffix, img_source in images_to_process:
-                result = self._process_single_version(
-                    img_source, image_path, image_id, suffix
+                augmented_results = self._apply_augmentations_with_coords(
+                    image_source, result, image_path, image_id
                 )
-                if result:
-                    results.append((result, img_source))
+                results.extend(augmented_results)
             
-            return results if results else [None]
+            return results
         
         except Exception as e:
             logger.error(f"Failed to process {image_path.name}: {e}")
@@ -160,12 +176,74 @@ class ImageProcessor:
             iou_threshold=self.config.helmet_iou_threshold,
         )
 
-    def _generate_augmentations(self, image_source: np.ndarray) -> List[Tuple[str, np.ndarray]]:
-        """Generate augmented versions of image."""
-        return [
-            ("_rot15", self.augmenter.rotate(image_source, 15)),
-            ("_noise", self.augmenter.add_noise(image_source, 0.1)),
-        ]
+    def _apply_augmentations_with_coords(self, image_source: np.ndarray, 
+                                         result: ImageResult, 
+                                         image_path: Path, 
+                                         image_id: int) -> List[Tuple[ImageResult, np.ndarray]]:
+        """Apply augmentations with coordinate transformation after detection"""
+        augmented_results = []
+        
+        # Apply rotation with coordinate transformation
+        rotated_img, rotated_dets, rotated_masks = self.augmenter.rotate_with_coords(
+            image_source, 15, result.detections, result.masks
+        )
+        rotated_result = ImageResult(
+            image_id=image_id + 1,
+            file_name=f"{image_path.stem}_rot15",
+            width=rotated_img.shape[1],
+            height=rotated_img.shape[0],
+            detections=rotated_dets
+        )
+        rotated_result.masks = rotated_masks
+        rotated_result.category = "auto"
+        augmented_results.append((rotated_result, rotated_img))
+        
+        # Apply noise (no coordinate transformation needed)
+        noisy_img, noisy_dets, noisy_masks = self.augmenter.add_noise_with_coords(
+            image_source, 0.1, result.detections, result.masks
+        )
+        noisy_result = ImageResult(
+            image_id=image_id + 2,
+            file_name=f"{image_path.stem}_noise",
+            width=noisy_img.shape[1],
+            height=noisy_img.shape[0],
+            detections=noisy_dets
+        )
+        noisy_result.masks = noisy_masks
+        noisy_result.category = "auto"
+        augmented_results.append((noisy_result, noisy_img))
+        
+        # Apply horizontal flip with coordinate transformation
+        flip_h_img, flip_h_dets, flip_h_masks = self.augmenter.flip_h_with_coords(
+            image_source, result.detections, result.masks
+        )
+        flip_h_result = ImageResult(
+            image_id=image_id + 3,
+            file_name=f"{image_path.stem}_fliph",
+            width=flip_h_img.shape[1],
+            height=flip_h_img.shape[0],
+            detections=flip_h_dets
+        )
+        flip_h_result.masks = flip_h_masks
+        flip_h_result.category = "auto"
+        augmented_results.append((flip_h_result, flip_h_img))
+        
+        # Apply darkening (no coordinate transformation needed)
+        dark_img, dark_dets, dark_masks = self.augmenter.darken_with_coords(
+            image_source, 0.5, result.detections, result.masks
+        )
+        dark_result = ImageResult(
+            image_id=image_id + 4,
+            file_name=f"{image_path.stem}_dark",
+            width=dark_img.shape[1],
+            height=dark_img.shape[0],
+            detections=dark_dets
+        )
+        dark_result.masks = dark_masks
+        dark_result.category = "auto"
+        augmented_results.append((dark_result, dark_img))
+        
+        return augmented_results
 
     def _process_single_version(self, img_source: np.ndarray, image_path: Path,
                                 image_id: int, suffix: str) -> Optional[ImageResult]:
