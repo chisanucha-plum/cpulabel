@@ -1,266 +1,174 @@
 # CPULabel
 
-**AI-powered auto-labeling** for creating YOLO and COCO datasets  
-Runs on **standard CPU** – no GPU required
+CPULabel generates YOLO and COCO datasets from unlabeled images using GroundingDINO for object detection and MobileSAM for segmentation. It runs on CPU, though PyTorch will use CUDA if available.
 
-🚀 **Tech Stack**: GroundingDINO (detection) + MobileSAM (segmentation)
+## Setup
 
----
-
-## ✨ Features
-
-- ✅ **CPU-friendly** – No GPU needed
-- ✅ **Multi-class detection** – Detect multiple object classes simultaneously
-- ✅ **Human-in-the-loop** – Interactive review with click-to-remove detections
-- ✅ **Per-class thresholds** – Fine-tune detection sensitivity per class
-- ✅ **Data augmentation** – Generate 3 versions per image (original, rotate, noise)
-- ✅ **YOLO + COCO export** – Export both formats with segmentation masks
-- ✅ **Production ready** – Error handling, logging, and clean architecture
-
----
-
-## 🎯 Quick Start
-
-### 1️⃣ Setup (First Time)
-See `SETUP.md` for detailed instructions
+Requires Python 3.8+, Git, 4 GB RAM, and about 5 GB of disk space for dependencies and model weights.
 
 ```bash
-# Clone/download project
-cd testsam_groud
-
-# Create venv and install dependencies
 python -m venv venv
-venv\Scripts\activate.bat
+venv\Scripts\activate.bat      # Windows CMD
+# venv\Scripts\Activate.ps1    # Windows PowerShell
+# source venv/bin/activate     # Linux / macOS
 
 pip install -r requirements.txt
-cd GroundingDINO
-pip install -e .
-cd ..
+pip install -e ./src/groundingdino
+git clone https://github.com/ChaoningZhang/MobileSAM.git MobileSAM
 ```
 
-### 2️⃣ Prepare Images
-```bash
-mkdir images
-# Copy your images into images/ folder
-```
+Download the model weights into their expected paths:
 
-### 3️⃣ Run
+- GroundingDINO: [groundingdino_swint_ogc.pth](https://huggingface.co/ShilongLiu/GroundingDINO/resolve/main/groundingdino_swint_ogc.pth) into `weights/groundingdino_swint_ogc.pth`
+- MobileSAM: [mobile_sam.pt](https://huggingface.co/ChaoningZhang/MobileSAM/resolve/main/mobile_sam.pt) into `MobileSAM/weights/mobile_sam.pt`
+
+See `SETUP.md` for full installation details.
+
+## Usage
+
+Place `.jpg` or `.png` files in `images/` and run `main.py`:
+
 ```bash
-# Basic processing
+# Automatic labeling
 python main.py
 
-# ✨ Recommended: Interactive review
+# Interactive review before saving
 python main.py --review
 
-# With 3x data augmentation per image
+# Interactive review with data augmentation
 python main.py --review --augment
 
-# Debug mode with verbose logging
-python main.py --review --verbose
+# Enable debug logging
+python main.py --verbose
 ```
 
----
+### Interactive review (`--review`)
 
-## 🎮 Human-in-the-Loop Review
+When `--review` is enabled, images where every detection has confidence `>= 0.80` are saved directly to `dataset/yolo/confident/`. Images with lower confidence open in an OpenCV window for manual inspection:
 
-Use `--review` flag to interactively review and refine detections
+| Input | Action |
+|---|---|
+| Left click on box | Remove that detection |
+| `Space` or `Esc` | Save remaining detections to `dataset/yolo/uncertain/` |
+| `C` | Save remaining detections to `dataset/yolo/confident/` |
+| `Q` | Reject the image and skip saving |
 
-### 🔦 Smart Auto-Sorting
-- **Confidence ≥ 0.80** → Auto-pass (saved to `confident/`)
-- **Confidence < 0.80** → Manual review (saved to `uncertain/`)
+Images with no detections are rejected automatically.
 
-### 🖱️ Keyboard Controls
-| Key | Action |
-|-----|--------|
-| **CLICK** | Remove detection (disappears immediately!) |
-| **SPACE / ESC** | Accept → mark as uncertain |
-| **C** | Mark as confident |
-| **Q** | Reject entire image |
+### Data augmentation (`--augment`)
 
-### 📁 Output Structure (with --review)
-```
-dataset/yolo/
-├── confident/          # Auto-pass ≥ 0.80 confidence
-│   ├── images/
-│   └── labels/
-├── uncertain/          # Manual reviewed < 0.80 confidence
-│   ├── images/
-│   └── labels/
-└── data.yaml
-```
+Passing `--augment` creates 4 additional variants for each accepted image (5 total):
 
----
+- Original image
+- Rotated +15 degrees (`_aug_rotate15`)
+- Gaussian noise (`_aug_noise`)
+- Horizontal flip (`_aug_flip_h`)
+- Darkened (`_aug_darken`)
 
-## ⚙️ Configuration
+Bounding boxes are transformed to match the rotated and flipped images, and MobileSAM re-segments each augmented image.
 
-Edit `configuration.json` to customize detection behavior:
+## Configuration
 
-### Current Setup
+Settings live in `configuration.json`:
+
 ```json
 {
+  "models": {
+    "dino_config": "src/groundingdino/groundingdino/config/GroundingDINO_SwinT_OGC.py",
+    "dino_weights": "weights/groundingdino_swint_ogc.pth",
+    "sam_weights": "MobileSAM/weights/mobile_sam.pt"
+  },
   "paths": {
     "input_folder": "images",
     "output_folder": "dataset"
   },
+  "detection": {
+    "box_threshold": 0.45,
+    "text_threshold": 0.30
+  },
+  "helmet": {
+    "iou_threshold": 0.30
+  },
   "classes": {
     "0": {
       "name": "helmet",
-      "box_threshold": 0.45,      // Conservative: high-quality only
+      "box_threshold": 0.45,
       "text_threshold": 0.30
     },
     "1": {
       "name": "head",
-      "box_threshold": 0.25,      // Aggressive: catch more instances
-      "text_threshold": 0.20
+      "box_threshold": 0.15,
+      "text_threshold": 0.10
+    },
+    "2": {
+      "name": "no_helmet",
+      "detect": false
     }
   },
   "colors": {
-    "0": [0, 255, 0],      // helmet = green
-    "1": [0, 0, 255]       // head = red
+    "0": [0, 255, 0],
+    "1": [255, 140, 0],
+    "2": [0, 0, 255]
   }
 }
 ```
 
-### Add a New Class
-```json
-"2": {
-  "name": "safety_vest",
-  "box_threshold": 0.40,
-  "text_threshold": 0.25
-},
-```
+Each entry in `classes` can be a plain string (`"0": "person"`) or an object with per-class `box_threshold`, `text_threshold`, and `detect` settings. Setting `"detect": false` excludes that class from GroundingDINO prompts while keeping it in the exported class list.
 
-### Understanding Per-Class Thresholds
-- **box_threshold** → Confidence threshold for bounding box detection (↑ = stricter, fewer false positives)
-- **text_threshold** → Confidence threshold for text recognition (↑ = stricter, more selective)
+When `helmet`, `head`, and `no_helmet` are all defined in `classes`, CPULabel compares each detected `head` against detected `helmet` boxes using `helmet.iou_threshold`. Heads that overlap a helmet above the threshold become `helmet`; the rest become `no_helmet`.
 
-💡 **helmet**: Higher thresholds (0.45/0.30) = focus on high-quality detections only  
-💡 **head**: Lower thresholds (0.25/0.20) = catch more instances, reduce false negatives
+## Output layout
 
----
-
-## 📊 Output Structure
-
-```
+```text
 dataset/
 ├── yolo/
-│   ├── confident/       # High-confidence detections
-│   ├── uncertain/       # Manually reviewed detections
-│   ├── images/          # All processed images
-│   ├── labels/          # YOLO format annotations
-│   └── data.yaml        # YOLO configuration
+│   ├── images/          # Standard output (without --review)
+│   ├── labels/
+│   ├── confident/       # High-confidence or C-approved output (with --review)
+│   │   ├── images/
+│   │   └── labels/
+│   ├── uncertain/       # Space/Esc-approved output (with --review)
+│   │   ├── images/
+│   │   └── labels/
+│   └── data.yaml
 ├── coco/
 │   ├── images/
-│   └── annotations/instances.json  # COCO format with masks
-└── visualizations/      # Preview images with overlays
+│   └── annotations/
+│       └── instances.json
+└── visualizations/      # Bounding box and mask overlays
 ```
 
----
+## Project structure
 
-## 📈 Data Augmentation
-
-When using `--augment`, each image generates 3 versions:
-
-```
-1 image → 3 versions:
-  ✅ Original
-  ✅ Rotated +15°
-  ✅ Gaussian noise applied
-```
-
-**Result**: 5 images → 15 labeled images (faster processing, maintained quality)
-
----
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| No images found | Verify `images/` folder exists, check for `.jpg/.png` files |
-| No detections | Lower `box_threshold` and `text_threshold` in config |
-| ImportError | Run `cd GroundingDINO && pip install -e . && cd ..` |
-| Slow processing | Reduce augmentation or disable it, lower image resolution |
-| Memory errors | Process fewer images, disable augmentation, use smaller images |
-
----
-
-## 📁 Project Structure
-
-```
+```text
 cpulabel/
-├── main.py                       # Entry point
-├── configuration.json            # Configuration
-├── README.md / SETUP.md / SKILL.md
-├── schemas/                      # Data structures
-│   ├── configuration.py
-│   ├── detection.py
-│   ├── image_result.py
-│   └── processing_stats.py
-├── utils_module/                 # Utility functions
-│   ├── file_utils.py             # File I/O operations
-│   ├── annotation_utils.py       # YOLO/COCO format handlers
-│   ├── augmentation.py           # Image augmentation
-│   ├── hitl_viewer.py            # Interactive review interface
-│   └── box_vector.py             # Box operations & IoU calculation
-├── models_module/                # AI Models
-│   ├── grounding_dino_model.py   # GroundingDINO wrapper
-│   └── mobile_sam_model.py       # MobileSAM wrapper
-└── processors/
-    └── image_processor.py        # Main processing pipeline
+├── main.py                         # CLI entry point
+├── configuration.json              # Paths, thresholds, and class definitions
+├── schemas/
+│   └── __init__.py                 # Config, ConfigLoader, Detection, ImageResult, ProcessingStats
+├── models_module/
+│   ├── grounding_dino_model.py     # GroundingDINO detection wrapper
+│   └── mobile_sam_model.py         # MobileSAM segmentation wrapper
+├── processors/
+│   ├── image_processor.py          # Detection, review, augmentation, and export pipeline
+│   └── helmet.py                   # Head-to-helmet IoU matching
+├── utils_module/
+│   ├── annotation_utils.py         # YOLO and COCO writers
+│   ├── augmentation.py             # Image and bounding-box augmentations
+│   ├── box_vector.py               # Box coordinate conversions and IoU
+│   ├── file_utils.py               # Dataset directory setup and visualization output
+│   └── hitl_viewer.py              # OpenCV review window
+└── tests/                          # Unit tests
 ```
 
----
+## Tests
 
-## 📦 Requirements
-
-- Python 3.8+
-- RAM: 4GB minimum
-- Disk space: ~5GB (for model weights)
-- CPU: Any modern processor
-
-**GPU**: Optional (CPU-only mode is fully supported)
-
----
-
-## 🚀 Workflow Example
+Run the unit test suite from the virtual environment:
 
 ```bash
-# 1. Initial setup
-python -m venv venv
-venv\Scripts\activate.bat
-pip install -r requirements.txt && cd GroundingDINO && pip install -e . && cd ..
-
-# 2. Place your images
-# Copy images to images/ folder
-
-# 3. Auto-label with interactive review (recommended)
-python main.py --review --augment
-
-# 4. Check results
-# - High-confidence labels: dataset/yolo/confident/
-# - Manual-reviewed labels: dataset/yolo/uncertain/
-
-# 5. Train your YOLO model
-# yolo detect train data=dataset/yolo/data.yaml model=yolov8n.pt epochs=50
+.\venv\Scripts\python.exe -m unittest discover tests
 ```
 
----
+## Credits and license
 
-## 📚 Documentation
-
-- **SETUP.md** – Detailed setup guide with troubleshooting
-- **SKILL.md** – Coding style guide for contributors
-- **ARCHITECTURE.html** – System architecture and design
-
----
-
-## 🏆 Credits
-
-- [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO) – Open-vocabulary object detection
-- [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) – Lightweight segmentation model
-
----
-
-## 📝 License
-
-MIT
+Built on [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO) and [MobileSAM](https://github.com/ChaoningZhang/MobileSAM). Licensed under MIT.
