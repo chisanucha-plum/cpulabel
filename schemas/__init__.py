@@ -1,6 +1,3 @@
-from .configuration import Config, ConfigLoader
-from .detection import Detection
-from .image_result import ImageResult
-from .processing_stats import ProcessingStats
+from .models import Config, ConfigLoader, Detection, ImageResult, ProcessingStats
 
 __all__ = ["Config", "ConfigLoader", "Detection", "ImageResult", "ProcessingStats"]
