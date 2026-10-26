@@ -22,8 +22,6 @@ Download the model weights into their expected paths:
 - GroundingDINO: [groundingdino_swint_ogc.pth](https://huggingface.co/ShilongLiu/GroundingDINO/resolve/main/groundingdino_swint_ogc.pth) into `weights/groundingdino_swint_ogc.pth`
 - MobileSAM: [mobile_sam.pt](https://huggingface.co/ChaoningZhang/MobileSAM/resolve/main/mobile_sam.pt) into `MobileSAM/weights/mobile_sam.pt`
 
-See `SETUP.md` for full installation details.
-
 ## Usage
 
 Place `.jpg` or `.png` files in `images/` and run `main.py`:
@@ -60,12 +58,12 @@ Images with no detections are rejected automatically.
 Passing `--augment` creates 4 additional variants for each accepted image (5 total):
 
 - Original image
-- Rotated +15 degrees (`_aug_rotate15`)
-- Gaussian noise (`_aug_noise`)
-- Horizontal flip (`_aug_flip_h`)
-- Darkened (`_aug_darken`)
+- Rotated +15 degrees (`_rot15`)
+- Gaussian noise (`_noise`)
+- Horizontal flip (`_fliph`)
+- Darkened (`_dark`)
 
-Bounding boxes are transformed to match the rotated and flipped images, and MobileSAM re-segments each augmented image.
+Bounding boxes and segmentation masks are transformed along with the rotated and flipped images.
 
 ## Configuration
 
@@ -145,19 +143,20 @@ cpulabel/
 ├── main.py                         # CLI entry point
 ├── configuration.json              # Paths, thresholds, and class definitions
 ├── schemas/
-│   └── __init__.py                 # Config, ConfigLoader, Detection, ImageResult, ProcessingStats
-├── models_module/
-│   ├── grounding_dino_model.py     # GroundingDINO detection wrapper
-│   └── mobile_sam_model.py         # MobileSAM segmentation wrapper
-├── processors/
-│   ├── image_processor.py          # Detection, review, augmentation, and export pipeline
+│   ├── __init__.py                 # Package exports
+│   └── models.py                   # Config, ConfigLoader, Detection, ImageResult, ProcessingStats
+├── models/
+│   ├── dino.py                     # GroundingDINO detection wrapper
+│   └── sam.py                      # MobileSAM segmentation wrapper
+├── pipeline/
+│   ├── labeler.py                  # Detection, review, augmentation, and export pipeline
 │   └── helmet.py                   # Head-to-helmet IoU matching
-├── utils_module/
-│   ├── annotation_utils.py         # YOLO and COCO writers
-│   ├── augmentation.py             # Image and bounding-box augmentations
-│   ├── box_vector.py               # Box coordinate conversions and IoU
-│   ├── file_utils.py               # Dataset directory setup and visualization output
-│   └── hitl_viewer.py              # OpenCV review window
+├── utils/
+│   ├── annotations.py              # YOLO and COCO writers
+│   ├── augment.py                  # Image and bounding-box augmentations
+│   ├── boxes.py                    # Box coordinate conversions and IoU
+│   ├── files.py                    # Dataset directory setup and visualization output
+│   └── viewer.py                   # OpenCV review window
 └── tests/                          # Unit tests
 ```
 

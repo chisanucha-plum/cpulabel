@@ -1,5 +1,9 @@
 # Requirements for GroundingDINO + MobileSAM Auto-Labeling
-# -e git+https://github.com/IDEA-Research/GroundingDINO.git@856dde20aee659246248e20734ef9ba5214f5e44#egg=groundingdino
+# GroundingDINO is vendored in this repo — install editable (run from repo root):
+#   pip install -e ./src/groundingdino
+# MobileSAM is imported via sys.path from the local MobileSAM/ folder (gitignored —
+# clone https://github.com/ChaoningZhang/MobileSAM there).
+
 addict==2.4.0
 numpy<2.0,>=1.24.0
 opencv-python>=4.8.0
